@@ -4,14 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
     /**
      * =========================
-     * REGISTER
+     * REGISTER (tanpa token)
      * =========================
      */
     public function register(Request $request)
@@ -32,17 +32,15 @@ class AuthController extends Controller
             'nama_usaha' => $request->nama_usaha,
         ]);
 
-        Auth::login($user);
-
         return response()->json([
-            'message' => 'Register berhasil',
+            'message' => 'Register berhasil, silakan login',
             'user' => $user
         ], 201);
     }
 
     /**
      * =========================
-     * LOGIN
+     * LOGIN (buat token)
      * =========================
      */
     public function login(Request $request)
@@ -52,30 +50,46 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        if (Auth::attempt($request->only('email', 'password'))) {
+        $user = User::where('email', $request->email)->first();
 
-            return response()->json([
-                'message' => 'Login berhasil',
-                'user' => Auth::user()
-            ], 200);
-        }        
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            throw ValidationException::withMessages([
+                'email' => ['Email atau password salah.'],
+            ]);
+        }
+
+        // opsional: hapus token lama biar 1 akun 1 token aktif
+        // $user->tokens()->delete();
+
+        $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'message' => 'Email atau password salah'
-        ], 401);
+            'message' => 'Login berhasil',
+            'user' => $user,
+            'token' => $token,
+            'token_type' => 'Bearer',
+        ], 200);
     }
 
     /**
      * =========================
-     * LOGOUT
+     * LOGOUT (hapus token yang dipakai)
      * =========================
      */
     public function logout(Request $request)
-{
-    Auth::logout();
+    {
+        $user = $request->user();
 
-    return response()->json([
-        'message' => 'Logout berhasil'
-    ], 200);
-}
+        if (!$user || !$user->currentAccessToken()) {
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+
+        $user->currentAccessToken()->delete();
+
+        return response()->json([
+            'message' => 'Logout berhasil'
+        ], 200);
+    }
 }

@@ -1,84 +1,70 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\ResepController;
+use App\Http\Controllers\BrandSectionController;
+use App\Http\Controllers\Api\DesignController;
 
-/**
- * =========================
- * PUBLIC ROUTES (TANPA LOGIN)
- * =========================
- * URL:
- * POST /api/register
- * POST /api/login
- */
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+Route::get('/reseps', [ResepController::class, 'index']);
+Route::get('/reseps/{resep}', [ResepController::class, 'show']);
 
-/**
- * =========================
- * PROTECTED ROUTES (HARUS LOGIN)
- * =========================
- * Middleware auth akan cek session login.
- */
-Route::middleware(['auth'])->group(function () {
+Route::get('/brand-sections', [BrandSectionController::class, 'index']);
 
-    // POST /api/logout
+Route::get('/designs', [DesignController::class, 'index']);
+Route::get('/designs/{id}', [DesignController::class, 'show']);
+Route::get('/designs/{id}/template', [DesignController::class, 'redirectToTemplate']);
+
+Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    // GET /api/me
-    Route::get('/me', function () {
+    Route::get('/me', function (Request $request) {
         return response()->json([
             'message' => 'User login saat ini',
-            'user' => Auth::user()
+            'user' => $request->user(),
         ], 200);
     });
 
-    /**
-     * =========================
-     * ROUTES UNTUK USER BIASA
-     * =========================
-     */
-    Route::middleware(['role:user'])->prefix('user')->group(function () {
+    Route::post('/reseps', [ResepController::class, 'store']);
+    Route::put('/reseps/{resep}', [ResepController::class, 'update']);
+    Route::delete('/reseps/{resep}', [ResepController::class, 'destroy']);
 
-        // GET /api/user/dashboard
-        Route::get('/dashboard', function () {
-            return response()->json([
-                'message' => 'Halo User Biasa',
-                'user' => Auth::user()
-            ], 200);
-        });
+    Route::post('/brand-sections', [BrandSectionController::class, 'store']);
+    Route::put('/brand-sections/{brandSection}', [BrandSectionController::class, 'update']);
+    Route::delete('/brand-sections/{brandSection}', [BrandSectionController::class, 'destroy']);
+});
 
-        // GET /api/user/profile
-        Route::get('/profile', function () {
-            return response()->json(Auth::user(), 200);
-        });
+Route::prefix('admin')->middleware('auth:sanctum')->group(function () {
+    Route::get('/dashboard', function (Request $request) {
+        return response()->json([
+            'message' => 'Halo Admin',
+            'user' => $request->user(),
+        ], 200);
     });
 
-    /**
-     * =========================
-     * ROUTES UNTUK ADMIN
-     * =========================
-     */
-    Route::middleware(['role:admin'])->prefix('admin')->group(function () {
+    Route::apiResource('/users', UserController::class);
 
-        // GET /api/admin/dashboard
-        Route::get('/dashboard', function () {
-            return response()->json([
-                'message' => 'Halo Admin',
-                'user' => Auth::user()
-            ], 200);
-        });
+    Route::post('/designs', [DesignController::class, 'store']);
+    Route::put('/designs/{id}', [DesignController::class, 'update']);
+    Route::delete('/designs/{id}', [DesignController::class, 'destroy']);
+    Route::get('/designs/{id}/template', [DesignController::class, 'redirectToTemplate']);
+});
 
-        // CRUD user untuk admin
-        // GET /api/admin/users
-        // POST /api/admin/users
-        // PUT /api/admin/users/{id}
-        // DELETE /api/admin/users/{id}
-        Route::apiResource('/users', UserController::class);
+Route::prefix('user')->middleware(['auth:sanctum', 'role:user'])->group(function () {
+    Route::get('/dashboard', function (Request $request) {
+        return response()->json([
+            'message' => 'Halo User Biasa',
+            'user' => $request->user(),
+        ], 200);
     });
 
+    Route::get('/profile', function (Request $request) {
+        return response()->json($request->user(), 200);
+    });
 });
