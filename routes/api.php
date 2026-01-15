@@ -6,16 +6,20 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ResepController;
-use App\Http\Controllers\BrandSectionController;
 use App\Http\Controllers\Api\DesignController;
+use App\Http\Controllers\KenaliMerkController;
+use App\Http\Controllers\ModulController;
+use App\Http\Controllers\QuestController;
+use App\Models\KenaliMerk;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+Route::post('/email/verify-otp', [AuthController::class, 'verifyEmailOtp']);
+Route::post('/email/resend-otp', [AuthController::class, 'resendEmailOtp']);
+
 Route::get('/reseps', [ResepController::class, 'index']);
 Route::get('/reseps/{resep}', [ResepController::class, 'show']);
-
-Route::get('/brand-sections', [BrandSectionController::class, 'index']);
 
 Route::get('/designs', [DesignController::class, 'index']);
 Route::get('/designs/{id}', [DesignController::class, 'show']);
@@ -28,19 +32,50 @@ Route::middleware('auth:sanctum')->group(function () {
         return response()->json([
             'message' => 'User login saat ini',
             'user' => $request->user(),
+            'verified' => $request->user()->hasVerifiedEmail(),
+            'email_verified_at' => $request->user()->email_verified_at,
         ], 200);
     });
+
+    Route::post('/email/verification-notification', function (Request $request) {
+        $request->user()->sendEmailVerificationNotification();
+
+        return response()->json([
+            'message' => 'Link verifikasi email dikirim ulang',
+        ], 200);
+    })->name('verification.send');
 
     Route::post('/reseps', [ResepController::class, 'store']);
     Route::put('/reseps/{resep}', [ResepController::class, 'update']);
     Route::delete('/reseps/{resep}', [ResepController::class, 'destroy']);
 
-    Route::post('/brand-sections', [BrandSectionController::class, 'store']);
-    Route::put('/brand-sections/{brandSection}', [BrandSectionController::class, 'update']);
-    Route::delete('/brand-sections/{brandSection}', [BrandSectionController::class, 'destroy']);
+    Route::get('/kenali-merk', [KenaliMerkController::class, 'index']);
+    Route::post('/kenali-merk', [KenaliMerkController::class, 'store']);
+    Route::get('/kenali-merk/{kenaliMerk}', [KenaliMerkController::class, 'show']);
+    Route::put('/kenali-merk/{kenaliMerk}', [KenaliMerkController::class, 'update']);
+    Route::delete('/kenali-merk/{kenaliMerk}', [KenaliMerkController::class, 'destroy']);
+
+    // ===== QUEST =====
+    Route::post('/quest/opening', [QuestController::class, 'opening']);
+
+    Route::get('/quest/a', [QuestController::class, 'listA']);
+    Route::post('/quest/a', [QuestController::class, 'storeA']);
+    Route::post('/quest/a/submit', [QuestController::class, 'submitA']);
+
+    Route::get('/quest/b', [QuestController::class, 'listB']);
+    Route::post('/quest/b', [QuestController::class, 'storeB']);
+    Route::post('/quest/b/submit', [QuestController::class, 'submitB']);
+
+    // (OPSIONAL) kalau kamu bikin methodnya di QuestController:
+    // Route::get('/quest/b/latest', [QuestController::class, 'latestB']);
+    // Route::get('/quest/summary', [QuestController::class, 'summary']);
+    // =================
+
+    Route::get('/modul', [KenaliMerk::class, 'index']);
+    Route::post('/modul', [KenaliMerkController::class, 'store']);
 });
 
-Route::prefix('admin')->middleware('auth:sanctum')->group(function () {
+Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::get('/dashboard', function (Request $request) {
         return response()->json([
             'message' => 'Halo Admin',
