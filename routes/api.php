@@ -8,9 +8,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ResepController;
 use App\Http\Controllers\Api\DesignController;
 use App\Http\Controllers\KenaliMerkController;
-use App\Http\Controllers\ModulController;
 use App\Http\Controllers\QuestController;
-use App\Models\KenaliMerk;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -26,6 +24,7 @@ Route::get('/designs/{id}', [DesignController::class, 'show']);
 Route::get('/designs/{id}/template', [DesignController::class, 'redirectToTemplate']);
 
 Route::middleware('auth:sanctum')->group(function () {
+
     Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::get('/me', function (Request $request) {
@@ -55,27 +54,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/kenali-merk/{kenaliMerk}', [KenaliMerkController::class, 'update']);
     Route::delete('/kenali-merk/{kenaliMerk}', [KenaliMerkController::class, 'destroy']);
 
-    // ===== QUEST =====
     Route::post('/quest/opening', [QuestController::class, 'opening']);
-
     Route::get('/quest/a', [QuestController::class, 'listA']);
     Route::post('/quest/a', [QuestController::class, 'storeA']);
     Route::post('/quest/a/submit', [QuestController::class, 'submitA']);
 
-    Route::get('/quest/b', [QuestController::class, 'listB']);
-    Route::post('/quest/b', [QuestController::class, 'storeB']);
-    Route::post('/quest/b/submit', [QuestController::class, 'submitB']);
-
-    // (OPSIONAL) kalau kamu bikin methodnya di QuestController:
-    // Route::get('/quest/b/latest', [QuestController::class, 'latestB']);
-    // Route::get('/quest/summary', [QuestController::class, 'summary']);
-    // =================
-
-    Route::get('/modul', [KenaliMerk::class, 'index']);
+    Route::get('/modul', [KenaliMerkController::class, 'index']);
     Route::post('/modul', [KenaliMerkController::class, 'store']);
 });
 
 Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
+
     Route::get('/dashboard', function (Request $request) {
         return response()->json([
             'message' => 'Halo Admin',
@@ -92,6 +81,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(functi
 });
 
 Route::prefix('user')->middleware(['auth:sanctum', 'role:user'])->group(function () {
+                    
     Route::get('/dashboard', function (Request $request) {
         return response()->json([
             'message' => 'Halo User Biasa',
