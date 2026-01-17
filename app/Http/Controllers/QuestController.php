@@ -29,6 +29,22 @@ class QuestController extends Controller
     }
 
     // ==========================
+    // QUEST - OPENING (sesuai route /quest/opening)
+    // ==========================
+    public function opening(Request $request)
+    {
+        $request->validate([
+            'quest_id' => 'required|integer',
+        ]);
+
+        return response()->json([
+            'message' => 'Opening quest berhasil',
+            'quest_id' => (int) $request->quest_id,
+            'user_id' => $request->user()->id,
+        ], 200);
+    }
+
+    // ==========================
     // QUEST A - SCHEMA (tanpa jasa / tanpa lainnya)
     // ==========================
     public function schemaA()
@@ -199,79 +215,87 @@ class QuestController extends Controller
     }
 
     // ==========================
-    // QUEST A - STORE
+    // QUEST A - LIST (sesuai route GET /quest/a)
+    // ==========================
+    public function listA(Request $request)
+    {
+        $items = QuestcardAAnswer::where('user_id', $request->user()->id)
+            ->latest()
+            ->get();
+
+        return response()->json($items, 200);
+    }
+
+    // ==========================
+    // QUEST A - STORE (POST /quest/a)
     // ==========================
     public function storeA(Request $request)
     {
         $validated = $request->validate([
             'nama_produk' => 'required|string|max:255',
             'jenis_produk' => 'required|in:makanan,minuman,kerajinan,skincare',
-            'harga_jual' => 'required|in:<5rb,5-10rb,10-25rb,>25rb',
+            'harga_jual'   => 'required|in:<5rb,5-10rb,10-25rb,>25rb',
 
-            'pembeli_utama' => 'required|array|min:1',
+            'pembeli_utama'   => 'required|array|min:1',
             'pembeli_utama.*' => 'in:tetangga,sekolah,kantoran,wisatawan,online_luar_daerah',
 
-            'cara_jual' => 'required|array|min:1',
+            'cara_jual'   => 'required|array|min:1',
             'cara_jual.*' => 'in:titip_warung,wa_grup_story,pasar_offline,marketplace,ig_fb',
 
             'produk_paling_laku' => 'required|string|max:255',
 
-            'q7_pujian' => 'required|array|max:2',
+            'q7_pujian'   => 'required|array|max:2',
             'q7_pujian.*' => 'string',
 
-            'q8_kesulitan' => 'required|array|max:2',
+            'q8_kesulitan'   => 'required|array|max:2',
             'q8_kesulitan.*' => 'string',
 
             'q8_detail' => 'nullable|array',
 
-            'q9_waktu_ramai' => 'required|array|max:2',
+            'q9_waktu_ramai'   => 'required|array|max:2',
             'q9_waktu_ramai.*' => 'string',
 
             'q9_hari_tentu' => 'nullable|string|max:255',
 
-            'q10_tujuan_beli' => 'required|array',
+            'q10_tujuan_beli'   => 'required|array',
             'q10_tujuan_beli.*' => 'string',
 
             'q10_lainnya' => 'nullable|string|max:255',
 
-            'q11_ancaman' => 'required|array|max:2',
+            'q11_ancaman'   => 'required|array|max:2',
             'q11_ancaman.*' => 'string',
         ]);
 
-        $userId = $request->user()->id;
-
         // default optional
-        $validated['q8_detail'] = $validated['q8_detail'] ?? [];
+        $validated['q8_detail']     = $validated['q8_detail'] ?? [];
         $validated['q9_hari_tentu'] = $validated['q9_hari_tentu'] ?? '-';
-        $validated['q10_lainnya'] = $validated['q10_lainnya'] ?? '-';
+        $validated['q10_lainnya']   = $validated['q10_lainnya'] ?? '-';
 
         $resultArr = $this->buildResultA($request);
-        if (!$resultArr) $resultArr = [];
 
         $data = [
-            'user_id' => $userId,
-            'nama_produk' => $validated['nama_produk'],
-            'jenis_produk' => $validated['jenis_produk'],
-            'harga_jual' => $validated['harga_jual'],
-            'pembeli_utama' => $validated['pembeli_utama'],
-            'cara_jual' => $validated['cara_jual'],
-            'produk_paling_laku' => $validated['produk_paling_laku'],
+            'user_id'           => $request->user()->id,
+            'nama_produk'       => $validated['nama_produk'],
+            'jenis_produk'      => $validated['jenis_produk'],
+            'harga_jual'        => $validated['harga_jual'],
+            'pembeli_utama'     => $validated['pembeli_utama'],
+            'cara_jual'         => $validated['cara_jual'],
+            'produk_paling_laku'=> $validated['produk_paling_laku'],
 
-            'q7_pujian' => $validated['q7_pujian'],
-            'q8_kesulitan' => $validated['q8_kesulitan'],
-            'q8_detail' => $validated['q8_detail'],
-            'q9_waktu_ramai' => $validated['q9_waktu_ramai'],
-            'q9_hari_tentu' => $validated['q9_hari_tentu'],
-            'q10_tujuan_beli' => $validated['q10_tujuan_beli'],
-            'q10_lainnya' => $validated['q10_lainnya'],
-            'q11_ancaman' => $validated['q11_ancaman'],
+            'q7_pujian'         => $validated['q7_pujian'],
+            'q8_kesulitan'      => $validated['q8_kesulitan'],
+            'q8_detail'         => $validated['q8_detail'],
+            'q9_waktu_ramai'    => $validated['q9_waktu_ramai'],
+            'q9_hari_tentu'     => $validated['q9_hari_tentu'],
+            'q10_tujuan_beli'   => $validated['q10_tujuan_beli'],
+            'q10_lainnya'       => $validated['q10_lainnya'],
+            'q11_ancaman'       => $validated['q11_ancaman'],
 
-            'swot_s' => $resultArr['swot']['strength'] ?? null,
-            'swot_w' => $resultArr['swot']['weakness'] ?? null,
-            'swot_o' => $resultArr['swot']['opportunity'] ?? null,
-            'swot_t' => $resultArr['swot']['threat'] ?? null,
-
-            'saran_3_bulan' => $resultArr['saran_3_bulan'] ?? null,
+            'swot_s'            => $resultArr['swot']['strength'] ?? null,
+            'swot_w'            => $resultArr['swot']['weakness'] ?? null,
+            'swot_o'            => $resultArr['swot']['opportunity'] ?? null,
+            'swot_t'            => $resultArr['swot']['threat'] ?? null,
+            'saran_3_bulan'     => $resultArr['saran_3_bulan'] ?? null,
         ];
 
         $item = QuestcardAAnswer::create($data);
@@ -283,7 +307,28 @@ class QuestController extends Controller
     }
 
     // ==========================
-    // QUEST A - BUILD RESULT (SWOT sesuai modul + kesimpulan rapih + saran 3 bulan)
+    // QUEST A - SUBMIT (sesuai route POST /quest/a/submit)
+    // ==========================
+    public function submitA(Request $request)
+    {
+        $latest = QuestcardAAnswer::where('user_id', $request->user()->id)
+            ->latest()
+            ->first();
+
+        if (!$latest) {
+            return response()->json([
+                'message' => 'Belum ada data QuestCard A untuk disubmit'
+            ], 422);
+        }
+
+        return response()->json([
+            'message' => 'QuestCard A berhasil disubmit',
+            'data' => $latest,
+        ], 200);
+    }
+
+    // ==========================
+    // QUEST A - BUILD RESULT
     // ==========================
     private function buildResultA(Request $request): array
     {
@@ -322,7 +367,6 @@ class QuestController extends Controller
         $q11_1 = $threatLabels[0] ?? '-';
         $q11_2 = $threatLabels[1] ?? '-';
 
-        // detail kendala Q8 per pilihan
         $q8Detail = $request->q8_detail ?? [];
         if (!is_array($q8Detail)) $q8Detail = [];
 
@@ -332,16 +376,7 @@ class QuestController extends Controller
         $detail1 = ($k1 && array_key_exists($k1, $q8Detail)) ? $q8Detail[$k1] : null;
         $detail2 = ($k2 && array_key_exists($k2, $q8Detail)) ? $q8Detail[$k2] : null;
 
-        $ringkasan = [
-            'nama_produk' => $request->nama_produk,
-            'jenis_produk' => $this->optionLabel($jenisOpts, $request->jenis_produk) ?? $request->jenis_produk,
-            'harga_jual' => $this->optionLabel($hargaOpts, $request->harga_jual) ?? $request->harga_jual,
-            'pembeli_utama' => $pembeliLabels,
-            'cara_jual' => $caraJualLabels,
-            'produk_paling_laku' => $request->produk_paling_laku,
-        ];
-
-        // SWOT text sesuai modul
+        // SWOT text
         $strengthText = "Kekuatan utama usaha anda ada pada {$q7_1} dan {$q7_2}, terlihat dari hal yang paling sering dipuji oleh pembeli.";
         $weaknessText = "Kelemahan utama usaha terletak pada {$q8_1} dan {$q8_2}, sehingga proses usaha belum berjalan optimal.";
         $opportunityText = "Peluang usaha terlihat dari pola penjualan yang ramai pada {$q9_1} dan {$q9_2}, serta kebutuhan pembeli yang membeli untuk "
@@ -372,17 +407,10 @@ class QuestController extends Controller
             ],
         ];
 
-        // ✅ Kesimpulan rapih (pakai detail kendala kalau ada)
+        // Kesimpulan rapih (pakai detail kendala)
         $kendalaText = [];
-
-        if ($q8_1 !== '-') {
-            $d = $detail1 ? " ({$detail1})" : '';
-            $kendalaText[] = $q8_1 . $d;
-        }
-        if ($q8_2 !== '-') {
-            $d = $detail2 ? " ({$detail2})" : '';
-            $kendalaText[] = $q8_2 . $d;
-        }
+        if ($q8_1 !== '-') $kendalaText[] = $q8_1 . ($detail1 ? " ({$detail1})" : '');
+        if ($q8_2 !== '-') $kendalaText[] = $q8_2 . ($detail2 ? " ({$detail2})" : '');
 
         $kesimpulan = "Berdasarkan hasil input, usaha {$request->nama_produk} memiliki kekuatan pada {$q7_1} dan {$q7_2}, "
             . "namun masih terkendala pada " . (count($kendalaText) ? implode(' dan ', $kendalaText) : '-') . ". "
@@ -390,7 +418,7 @@ class QuestController extends Controller
             . "dan kebutuhan pembeli untuk " . (count($oppNeedLabels) ? implode(', ', $oppNeedLabels) : '-') . ". "
             . "Ancaman utama berasal dari {$q11_1} dan {$q11_2}.";
 
-        // SARAN 3 BULAN KE DEPAN
+        // Saran 3 bulan
         $prioritas1 = ($q8_1 !== '-') ? $q8_1 : null;
         $prioritas2 = ($q11_1 !== '-') ? $q11_1 : null;
         $prioritas3 = ($q9_1 !== '-') ? $q9_1 : null;
@@ -408,7 +436,14 @@ class QuestController extends Controller
         ];
 
         return [
-            'ringkasan' => $ringkasan,
+            'ringkasan' => [
+                'nama_produk' => $request->nama_produk,
+                'jenis_produk' => $this->optionLabel($jenisOpts, $request->jenis_produk) ?? $request->jenis_produk,
+                'harga_jual' => $this->optionLabel($hargaOpts, $request->harga_jual) ?? $request->harga_jual,
+                'pembeli_utama' => $pembeliLabels,
+                'cara_jual' => $caraJualLabels,
+                'produk_paling_laku' => $request->produk_paling_laku,
+            ],
             'swot' => $swot,
             'kesimpulan' => $kesimpulan,
             'saran_3_bulan' => $saran3Bulan,
