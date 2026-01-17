@@ -162,6 +162,8 @@ class AuthController extends Controller
         if (!$user->hasVerifiedEmail()) {
             return response()->json([
                 'message' => 'Email belum diverifikasi. Silakan verifikasi dengan OTP terlebih dahulu.',
+                'code' => 'EMAIL_NOT_VERIFIED',
+                'email' => $user->email,
             ], 403);
         }
 

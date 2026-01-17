@@ -18,6 +18,7 @@ class Resep extends Model
         'steps',
         'foto_produk',
         'foto_rekomendasi_kemasan',
+        'link_ytb',
     ];
 
     protected $casts = [
