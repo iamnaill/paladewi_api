@@ -9,9 +9,14 @@ use App\Http\Controllers\ResepController;
 use App\Http\Controllers\Api\DesignController;
 use App\Http\Controllers\KenaliMerkController;
 use App\Http\Controllers\QuestController;
+use App\Models\DaftarToko;
+use App\Http\Controllers\FormPendaftaranController;
 
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register'])
+    ->middleware('throttle:7,1');
+
+Route::post('/login', [AuthController::class, 'login'])
+    ->middleware('throttle:7,1');
 
 Route::post('/email/verify-otp', [AuthController::class, 'verifyEmailOtp']);
 Route::post('/email/resend-otp', [AuthController::class, 'resendEmailOtp']);
@@ -54,6 +59,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/kenali-merk/{kenaliMerk}', [KenaliMerkController::class, 'update']);
     Route::delete('/kenali-merk/{kenaliMerk}', [KenaliMerkController::class, 'destroy']);
 
+    Route::post('/toko', [FormPendaftaranController::class, 'store']);
+
+    // opsional (kalau nanti perlu)
+    Route::put('/toko/{toko}', function (DaftarToko $toko) {
+        return $toko;
+    });
+
+    Route::delete('/toko/{toko}', function (DaftarToko $toko) {
+        $toko->delete();
+        return response()->json(['message' => 'Dihapus']);
+    });
+
     Route::post('/quest/opening', [QuestController::class, 'opening']);
     Route::get('/quest/a', [QuestController::class, 'listA']);
     Route::post('/quest/a', [QuestController::class, 'storeA']);
@@ -81,7 +98,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(functi
 });
 
 Route::prefix('user')->middleware(['auth:sanctum', 'role:user'])->group(function () {
-                    
+
     Route::get('/dashboard', function (Request $request) {
         return response()->json([
             'message' => 'Halo User Biasa',

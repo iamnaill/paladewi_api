@@ -13,21 +13,24 @@ class FormPendaftaranController extends Controller
     }
 
     public function store(Request $request)
-{
-    $validated = $request->validate([
-        'nama_toko' => ['required', 'string', 'max:255'],
-        'no_wa' => ['required', 'string', 'max:30'],
-        'link_ecommerce' => ['nullable', 'string', 'max:255'],
-        'kategori_produk' => ['required', 'string', 'max:255'],
-        'bio_toko' => ['required', 'string'],
-    ]);
+    {
+        // VALIDASI SESUAI MODEL
+        $validated = $request->validate([
+  'nama_toko' => ['required','string','max:255'],
+  'no_wa' => ['required','string','max:30'],
+  'link_ecommerce' => ['nullable','string','max:255'],
+  'kategori_produk' => ['required','string','max:255'],
+  'bio_toko' => ['required','string'],
+  'deskripsi_produk' => ['required','string'],
+  'harga_produk' => ['required','numeric','min:0'],
+]);
 
-    $data = DaftarToko::create($validated);
+        // SIMPAN KE TABEL daftar_toko
+        $data = DaftarToko::create($validated);
 
-    return response()->json([
-        'message' => 'Pendaftaran berhasil',
-        'data' => $data,
-    ], 201);
-}
-
+        return response()->json([
+            'message' => 'Pendaftaran UMKM berhasil',
+            'data' => $data,
+        ], 201);
+    }
 }

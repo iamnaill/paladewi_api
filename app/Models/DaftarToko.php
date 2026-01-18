@@ -17,5 +17,9 @@ class DaftarToko extends Model
         'link_ecommerce',
         'kategori_produk',
         'bio_toko',
+        'deskripsi_produk',
+        'harga_produk',
+        'gambar_produk',
+        
     ];
 }
