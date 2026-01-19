@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB; // ✅ WAJIB buat DB::transaction
 use App\Models\QuestcardAAnswer;
 
 class QuestController extends Controller
@@ -215,7 +216,7 @@ class QuestController extends Controller
     }
 
     // ==========================
-    // QUEST A - LIST (sesuai route GET /quest/a)
+    // QUEST A - LIST (GET /quest/a)
     // ==========================
     public function listA(Request $request)
     {
@@ -266,39 +267,43 @@ class QuestController extends Controller
             'q11_ancaman.*' => 'string',
         ]);
 
-        // default optional
         $validated['q8_detail']     = $validated['q8_detail'] ?? [];
         $validated['q9_hari_tentu'] = $validated['q9_hari_tentu'] ?? '-';
         $validated['q10_lainnya']   = $validated['q10_lainnya'] ?? '-';
 
         $resultArr = $this->buildResultA($request);
 
+        $userId = $request->user()->id;
+
         $data = [
-            'user_id'           => $request->user()->id,
-            'nama_produk'       => $validated['nama_produk'],
-            'jenis_produk'      => $validated['jenis_produk'],
-            'harga_jual'        => $validated['harga_jual'],
-            'pembeli_utama'     => $validated['pembeli_utama'],
-            'cara_jual'         => $validated['cara_jual'],
-            'produk_paling_laku'=> $validated['produk_paling_laku'],
+            'user_id'            => $userId,
+            'nama_produk'        => $validated['nama_produk'],
+            'jenis_produk'       => $validated['jenis_produk'],
+            'harga_jual'         => $validated['harga_jual'],
+            'pembeli_utama'      => $validated['pembeli_utama'],
+            'cara_jual'          => $validated['cara_jual'],
+            'produk_paling_laku' => $validated['produk_paling_laku'],
 
-            'q7_pujian'         => $validated['q7_pujian'],
-            'q8_kesulitan'      => $validated['q8_kesulitan'],
-            'q8_detail'         => $validated['q8_detail'],
-            'q9_waktu_ramai'    => $validated['q9_waktu_ramai'],
-            'q9_hari_tentu'     => $validated['q9_hari_tentu'],
-            'q10_tujuan_beli'   => $validated['q10_tujuan_beli'],
-            'q10_lainnya'       => $validated['q10_lainnya'],
-            'q11_ancaman'       => $validated['q11_ancaman'],
+            'q7_pujian'       => $validated['q7_pujian'],
+            'q8_kesulitan'    => $validated['q8_kesulitan'],
+            'q8_detail'       => $validated['q8_detail'],
+            'q9_waktu_ramai'  => $validated['q9_waktu_ramai'],
+            'q9_hari_tentu'   => $validated['q9_hari_tentu'],
+            'q10_tujuan_beli' => $validated['q10_tujuan_beli'],
+            'q10_lainnya'     => $validated['q10_lainnya'],
+            'q11_ancaman'     => $validated['q11_ancaman'],
 
-            'swot_s'            => $resultArr['swot']['strength'] ?? null,
-            'swot_w'            => $resultArr['swot']['weakness'] ?? null,
-            'swot_o'            => $resultArr['swot']['opportunity'] ?? null,
-            'swot_t'            => $resultArr['swot']['threat'] ?? null,
-            'saran_3_bulan'     => $resultArr['saran_3_bulan'] ?? null,
+            'swot_s'        => $resultArr['swot']['strength'] ?? null,
+            'swot_w'        => $resultArr['swot']['weakness'] ?? null,
+            'swot_o'        => $resultArr['swot']['opportunity'] ?? null,
+            'swot_t'        => $resultArr['swot']['threat'] ?? null,
+            'saran_3_bulan' => $resultArr['saran_3_bulan'] ?? null,
         ];
 
-        $item = QuestcardAAnswer::create($data);
+        $item = DB::transaction(function () use ($userId, $data) {
+            QuestcardAAnswer::where('user_id', $userId)->delete();
+            return QuestcardAAnswer::create($data);
+        });
 
         return response()->json([
             'message' => 'QuestCard A tersimpan',
@@ -307,7 +312,7 @@ class QuestController extends Controller
     }
 
     // ==========================
-    // QUEST A - SUBMIT (sesuai route POST /quest/a/submit)
+    // QUEST A - SUBMIT (POST /quest/a/submit)
     // ==========================
     public function submitA(Request $request)
     {
@@ -376,7 +381,6 @@ class QuestController extends Controller
         $detail1 = ($k1 && array_key_exists($k1, $q8Detail)) ? $q8Detail[$k1] : null;
         $detail2 = ($k2 && array_key_exists($k2, $q8Detail)) ? $q8Detail[$k2] : null;
 
-        // SWOT text
         $strengthText = "Kekuatan utama usaha anda ada pada {$q7_1} dan {$q7_2}, terlihat dari hal yang paling sering dipuji oleh pembeli.";
         $weaknessText = "Kelemahan utama usaha terletak pada {$q8_1} dan {$q8_2}, sehingga proses usaha belum berjalan optimal.";
         $opportunityText = "Peluang usaha terlihat dari pola penjualan yang ramai pada {$q9_1} dan {$q9_2}, serta kebutuhan pembeli yang membeli untuk "
@@ -407,7 +411,6 @@ class QuestController extends Controller
             ],
         ];
 
-        // Kesimpulan rapih (pakai detail kendala)
         $kendalaText = [];
         if ($q8_1 !== '-') $kendalaText[] = $q8_1 . ($detail1 ? " ({$detail1})" : '');
         if ($q8_2 !== '-') $kendalaText[] = $q8_2 . ($detail2 ? " ({$detail2})" : '');
@@ -418,7 +421,6 @@ class QuestController extends Controller
             . "dan kebutuhan pembeli untuk " . (count($oppNeedLabels) ? implode(', ', $oppNeedLabels) : '-') . ". "
             . "Ancaman utama berasal dari {$q11_1} dan {$q11_2}.";
 
-        // Saran 3 bulan
         $prioritas1 = ($q8_1 !== '-') ? $q8_1 : null;
         $prioritas2 = ($q11_1 !== '-') ? $q11_1 : null;
         $prioritas3 = ($q9_1 !== '-') ? $q9_1 : null;
