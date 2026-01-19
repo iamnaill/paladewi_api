@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -8,45 +9,79 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('questcard_a_answers', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+        Schema::table('questcard_a_answers', function (Blueprint $table) {
+            // ✅ fix tipe kolom jadi JSON (kalau sebelumnya bukan json)
+            // butuh doctrine/dbal kalau kamu pakai ->change()
+            if (Schema::hasColumn('questcard_a_answers', 'pembeli_utama')) {
+                $table->json('pembeli_utama')->nullable()->change();
+            }
+            if (Schema::hasColumn('questcard_a_answers', 'cara_jual')) {
+                $table->json('cara_jual')->nullable()->change();
+            }
 
-            $table->string('nama_produk')->nullable();
-            $table->string('jenis_produk')->nullable();
-            $table->string('jenis_produk_lainnya')->nullable();
+            // ✅ kolom-kolom baru sesuai backend baru (add kalau belum ada)
+            if (!Schema::hasColumn('questcard_a_answers', 'q7_pujian')) {
+                $table->json('q7_pujian')->nullable();
+            }
+            if (!Schema::hasColumn('questcard_a_answers', 'q8_kesulitan')) {
+                $table->json('q8_kesulitan')->nullable();
+            }
+            if (!Schema::hasColumn('questcard_a_answers', 'q8_detail')) {
+                $table->json('q8_detail')->nullable();
+            }
+            if (!Schema::hasColumn('questcard_a_answers', 'q9_waktu_ramai')) {
+                $table->json('q9_waktu_ramai')->nullable();
+            }
+            if (!Schema::hasColumn('questcard_a_answers', 'q9_hari_tentu')) {
+                $table->string('q9_hari_tentu', 255)->nullable();
+            }
+            if (!Schema::hasColumn('questcard_a_answers', 'q10_tujuan_beli')) {
+                $table->json('q10_tujuan_beli')->nullable();
+            }
+            if (!Schema::hasColumn('questcard_a_answers', 'q10_lainnya')) {
+                $table->string('q10_lainnya', 255)->nullable();
+            }
+            if (!Schema::hasColumn('questcard_a_answers', 'q11_ancaman')) {
+                $table->json('q11_ancaman')->nullable();
+            }
 
-            $table->string('harga_jual')->nullable();
+            if (!Schema::hasColumn('questcard_a_answers', 'swot_s')) {
+                $table->longText('swot_s')->nullable();
+            }
+            if (!Schema::hasColumn('questcard_a_answers', 'swot_w')) {
+                $table->longText('swot_w')->nullable();
+            }
+            if (!Schema::hasColumn('questcard_a_answers', 'swot_o')) {
+                $table->longText('swot_o')->nullable();
+            }
+            if (!Schema::hasColumn('questcard_a_answers', 'swot_t')) {
+                $table->longText('swot_t')->nullable();
+            }
 
-            $table->json('pembeli_utama')->nullable();
-            $table->json('cara_jual')->nullable();
-
-            $table->string('produk_paling_laku')->nullable();
-
-            $table->json('strengths')->nullable();
-            $table->json('weaknesses')->nullable();
-
-            $table->string('kendala_kode')->nullable();
-            $table->string('kendala_detail')->nullable();
-
-            $table->json('waktu_laku')->nullable();
-            $table->json('keperluan_pembeli')->nullable();
-
-            $table->json('ancaman')->nullable();
-
-            $table->string('kendala_produksi')->nullable();
-            $table->string('kendala_jualan')->nullable();
-            $table->string('kendala_bahan')->nullable();
-            $table->string('kendala_alat_lingkungan')->nullable();
-
-            $table->json('hasil_output')->nullable();
-
-            $table->timestamps();
+            if (!Schema::hasColumn('questcard_a_answers', 'saran_3_bulan')) {
+                $table->json('saran_3_bulan')->nullable();
+            }
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('questcard_a_answers');
+        Schema::table('questcard_a_answers', function (Blueprint $table) {
+            // optional: rollback kolom-kolom tambahan
+            $drops = [
+                'q7_pujian','q8_kesulitan','q8_detail','q9_waktu_ramai','q9_hari_tentu',
+                'q10_tujuan_beli','q10_lainnya','q11_ancaman',
+                'swot_s','swot_w','swot_o','swot_t','saran_3_bulan',
+            ];
+
+            foreach ($drops as $col) {
+                if (Schema::hasColumn('questcard_a_answers', $col)) {
+                    $table->dropColumn($col);
+                }
+            }
+
+            // kalau mau balikin tipe lama pembeli_utama/cara_jual, tentuin tipe lamanya.
+            // (biasanya tidak perlu)
+        });
     }
 };

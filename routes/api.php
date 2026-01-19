@@ -12,11 +12,9 @@ use App\Http\Controllers\QuestController;
 use App\Models\DaftarToko;
 use App\Http\Controllers\FormPendaftaranController;
 
-Route::post('/register', [AuthController::class, 'register'])
-    ->middleware('throttle:7,1');
-
-Route::post('/login', [AuthController::class, 'login'])
-    ->middleware('throttle:7,1');
+// ✅ CUKUP SEKALI (pakai limiter "auth" dari RouteServiceProvider)
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:auth');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth');
 
 Route::post('/email/verify-otp', [AuthController::class, 'verifyEmailOtp']);
 Route::post('/email/resend-otp', [AuthController::class, 'resendEmailOtp']);
@@ -61,7 +59,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/toko', [FormPendaftaranController::class, 'store']);
 
-    // opsional (kalau nanti perlu)
     Route::put('/toko/{toko}', function (DaftarToko $toko) {
         return $toko;
     });
