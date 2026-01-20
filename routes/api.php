@@ -11,6 +11,7 @@ use App\Http\Controllers\KenaliMerkController;
 use App\Http\Controllers\QuestController;
 use App\Models\DaftarToko;
 use App\Http\Controllers\FormPendaftaranController;
+use Illuminate\Validation\Rule;
 
 // AUTH (tanpa throttle)
 Route::post('/register', [AuthController::class, 'register']);
@@ -102,7 +103,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(functi
     Route::get('/designs/{id}/template', [DesignController::class, 'redirectToTemplate']);
 });
 
-// USER
+
 Route::prefix('user')->middleware(['auth:sanctum', 'role:user'])->group(function () {
 
     Route::get('/dashboard', function (Request $request) {
@@ -115,4 +116,46 @@ Route::prefix('user')->middleware(['auth:sanctum', 'role:user'])->group(function
     Route::get('/profile', function (Request $request) {
         return response()->json($request->user(), 200);
     });
+
+    // ✅ UPDATE profile user (PATCH lebih cocok untuk update sebagian field)
+    Route::patch('/profile', function (Request $request) {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'nama'       => ['sometimes', 'string', 'max:255'],
+            'email'      => [
+                'sometimes',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($user->id),
+            ],
+            'no_telpon'  => ['sometimes', 'string', 'max:30'],
+            'nama_usaha' => ['sometimes', 'string', 'max:255'],
+
+            // opsional: update password
+            'password'   => ['sometimes', 'string', 'min:8', 'confirmed'],
+            // butuh field: password_confirmation
+        ]);
+
+        // kalau email berubah, biasanya verifikasi ulang + set verified_at null
+        if (isset($validated['email']) && $validated['email'] !== $user->email) {
+            $validated['email_verified_at'] = null;
+            // optional: di sini kamu bisa trigger kirim verifikasi email lagi
+        }
+
+        if (isset($validated['password'])) {
+            $validated['password'] = bcrypt($validated['password']);
+        }
+
+        // ✅ keamanan: user tidak boleh update role lewat endpoint ini
+        unset($validated['role']);
+
+        $user->update($validated);
+
+        return response()->json([
+            'message' => 'Profile berhasil diperbarui',
+            'user' => $user->fresh(),
+        ], 200);
+    });
+
 });

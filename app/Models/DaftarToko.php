@@ -11,15 +11,17 @@ class DaftarToko extends Model
 
     protected $table = 'daftar_toko';
 
-    protected $fillable = [
-        'nama_toko',
-        'no_wa',
-        'link_ecommerce',
-        'kategori_produk',
-        'bio_toko',
-        'deskripsi_produk',
-        'harga_produk',
-        'gambar_produk',
-        
-    ];
+protected $fillable = [
+  'nama_toko',
+  'no_wa',
+  'link_ecommerce',
+  'kategori_produk',
+  'bio_toko',
+  'nama_produk',
+  'deskripsi_produk',
+  'harga_produk',
+  'gambar_produk',
+];
+
+
 }
