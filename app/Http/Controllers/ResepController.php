@@ -11,24 +11,25 @@ class ResepController extends Controller
     {
         $query = Resep::query();
 
-        if ($request->filled('kategori_produk')) {
-            $query->where('kategori_produk', $request->kategori_produk);
-        }
-
+        // SEARCH keyword (nama/deskripsi/bahan/steps/kategori/link_ytb)
         if ($request->filled('search')) {
-            $s = $request->search;
+            $s = trim((string) $request->search);
 
             $query->where(function ($q) use ($s) {
                 $q->where('nama_resep', 'like', "%{$s}%")
-                    ->orWhere('deskripsi', 'like', "%{$s}%")
-                    ->orWhere('alat_dan_bahan', 'like', "%{$s}%")
-                    ->orWhere('steps', 'like', "%{$s}%")
-                    ->orWhere('kategori_produk', 'like', "%{$s}%")
-                    ->orWhere('kategori_pala', 'like', "%{$s}%");
+                  ->orWhere('deskripsi', 'like', "%{$s}%")
+                  ->orWhere('alat_dan_bahan', 'like', "%{$s}%")
+                  ->orWhere('steps', 'like', "%{$s}%")
+                  ->orWhere('kategori_produk', 'like', "%{$s}%")
+                  ->orWhere('kategori_pala', 'like', "%{$s}%")
+                  ->orWhere('link_ytb', 'like', "%{$s}%");
             });
         }
 
-        return response()->json($query->latest()->get(), 200);
+        return response()->json([
+            'message' => 'List resep',
+            'data' => $query->latest()->get()
+        ], 200);
     }
 
     public function show(Resep $resep)
@@ -40,15 +41,18 @@ class ResepController extends Controller
     {
         $request->validate([
             'kategori_produk' => 'required|in:makanan,minuman,kecantikan,wewangian',
-            'kategori_pala' => 'nullable|string|max:100',
-            'nama_resep' => 'required|string|max:255',
-            'deskripsi' => 'nullable|string',
-            'alat_dan_bahan' => 'required|string',
-            'steps' => 'required|string',
+            'kategori_pala'   => 'nullable|string|max:100',
+            'nama_resep'      => 'required|string|max:255',
+            'deskripsi'       => 'nullable|string',
+            'alat_dan_bahan'  => 'required|string',
+            'steps'           => 'required|string',
 
-            'foto_produk' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            // sesuai kolom DB
+            'link_ytb'        => 'nullable|url|max:255',
 
-            'foto_rekomendasi_kemasan' => 'nullable|array|max:3',
+            'foto_produk'     => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+
+            'foto_rekomendasi_kemasan'   => 'nullable|array|max:3',
             'foto_rekomendasi_kemasan.*' => 'image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
@@ -59,6 +63,7 @@ class ResepController extends Controller
             'deskripsi',
             'alat_dan_bahan',
             'steps',
+            'link_ytb',
         ]);
 
         if ($request->hasFile('foto_produk')) {
@@ -71,7 +76,6 @@ class ResepController extends Controller
                 $kemasanPaths[] = $file->store('kemasan', 'public');
             }
         }
-
         $data['foto_rekomendasi_kemasan'] = $kemasanPaths;
 
         $resep = Resep::create($data);
@@ -86,15 +90,18 @@ class ResepController extends Controller
     {
         $request->validate([
             'kategori_produk' => 'sometimes|required|in:makanan,minuman,kecantikan,wewangian',
-            'kategori_pala' => 'nullable|string|max:100',
-            'nama_resep' => 'sometimes|required|string|max:255',
-            'deskripsi' => 'nullable|string',
-            'alat_dan_bahan' => 'sometimes|required|string',
-            'steps' => 'sometimes|required|string',
+            'kategori_pala'   => 'nullable|string|max:100',
+            'nama_resep'      => 'sometimes|required|string|max:255',
+            'deskripsi'       => 'nullable|string',
+            'alat_dan_bahan'  => 'sometimes|required|string',
+            'steps'           => 'sometimes|required|string',
 
-            'foto_produk' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            // sesuai kolom DB
+            'link_ytb'        => 'nullable|url|max:255',
 
-            'foto_rekomendasi_kemasan' => 'nullable|array|max:3',
+            'foto_produk'     => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+
+            'foto_rekomendasi_kemasan'   => 'nullable|array|max:3',
             'foto_rekomendasi_kemasan.*' => 'image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
@@ -105,6 +112,7 @@ class ResepController extends Controller
             'deskripsi',
             'alat_dan_bahan',
             'steps',
+            'link_ytb',
         ]);
 
         if ($request->hasFile('foto_produk')) {

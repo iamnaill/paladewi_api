@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\QuestController;
 use App\Models\DaftarToko;
 use App\Http\Controllers\FormPendaftaranController;
 use Illuminate\Validation\Rule;
+use App\Http\Controllers\TanyaDewiController;
 
 // AUTH (tanpa throttle)
 Route::post('/register', [AuthController::class, 'register']);
@@ -21,8 +23,21 @@ Route::post('/email/verify-otp', [AuthController::class, 'verifyEmailOtp']);
 Route::post('/email/resend-otp', [AuthController::class, 'resendEmailOtp']);
 
 // PUBLIC
+Route::apiResource('reseps', ResepController::class);
+
 Route::get('/reseps', [ResepController::class, 'index']);
 Route::get('/reseps/{resep}', [ResepController::class, 'show']);
+
+Route::get('/toko', function () {
+    return response()->json([
+        'data' => DaftarToko::latest()->get()
+    ], 200);
+});
+
+Route::get('/reseps', [ResepController::class, 'index']);
+Route::get('/reseps/{resep}', [ResepController::class, 'show']);
+
+Route::get('/toko', [FormPendaftaranController::class, 'index']);
 
 Route::get('/designs', [DesignController::class, 'index']);
 Route::get('/designs/{id}', [DesignController::class, 'show']);
@@ -51,6 +66,8 @@ Route::middleware('auth:sanctum')->group(function () {
     })->name('verification.send');
 
     // RESEP CRUD
+    Route::get('/reseps', [ResepController::class, 'index']); // search di sini
+    Route::get('/reseps/{resep}', [ResepController::class, 'show']);
     Route::post('/reseps', [ResepController::class, 'store']);
     Route::put('/reseps/{resep}', [ResepController::class, 'update']);
     Route::delete('/reseps/{resep}', [ResepController::class, 'destroy']);
@@ -92,6 +109,38 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(functi
         return response()->json([
             'message' => 'Halo Admin',
             'user' => $request->user(),
+        ], 200);
+    });
+     // ✅ APPROVAL TOKO/PRODUK
+    Route::patch('/toko/{toko}/approve', function (DaftarToko $toko, Request $request) {
+        $toko->update([
+            'status_approval' => 'approved',
+            'approved_at' => now(),
+            'approved_by' => $request->user()->id,
+            'alasan_reject' => null,
+        ]);
+
+        return response()->json([
+            'message' => 'Produk berhasil di-approve',
+            'data' => $toko
+        ], 200);
+    });
+
+    Route::patch('/toko/{toko}/reject', function (DaftarToko $toko, Request $request) {
+        $request->validate([
+            'alasan_reject' => ['nullable','string','max:255'],
+        ]);
+
+        $toko->update([
+            'status_approval' => 'rejected',
+            'approved_at' => null,
+            'approved_by' => $request->user()->id,
+            'alasan_reject' => $request->alasan_reject,
+        ]);
+
+        return response()->json([
+            'message' => 'Produk berhasil di-reject',
+            'data' => $toko
         ], 200);
     });
 
@@ -159,3 +208,37 @@ Route::prefix('user')->middleware(['auth:sanctum', 'role:user'])->group(function
     });
 
 });
+
+Route::middleware('auth:sanctum')->prefix('tanya-dewi')->group(function () {
+    Route::post('/sessions', [TanyaDewiController::class, 'startSession']);
+    Route::post('/sessions/{sessionId}/messages', [TanyaDewiController::class, 'sendMessage']);
+    Route::get('/sessions/{sessionId}/messages', [TanyaDewiController::class, 'getMessages']);
+});
+
+// Route::get('/debug-agent', function () {
+//     return response()->json([
+//         'APP_URL' => env('APP_URL'),
+//         'AGENT_URL' => env('AGENT_URL'),
+//         'AGENT_TIMEOUT' => env('AGENT_TIMEOUT'),
+//         'has_token' => (bool) env('AGENT_TOKEN'),
+//     ]);
+// });
+
+// Route::get('/agent-ping', function () {
+//     $resp = Http::timeout(10)
+//         ->withHeaders([
+//             'X-App-Token' => env('AGENT_TOKEN'),
+//             'Accept' => 'application/json',
+//         ])
+//         ->post(env('AGENT_URL'), [
+//             'session_id' => 'test-session',
+//             'user_id' => 1,
+//             'message' => 'ping',
+//             'history' => [],
+//         ]);
+
+//     return response()->json([
+//         'status' => $resp->status(),
+//         'body_raw' => $resp->body(),
+//     ]);
+// });

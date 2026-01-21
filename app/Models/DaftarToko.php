@@ -21,7 +21,15 @@ protected $fillable = [
   'deskripsi_produk',
   'harga_produk',
   'gambar_produk',
+
+  'status_approval',
+  'approved_at',
+  'approved_by',
+  'alasan_reject',
 ];
 
+public function scopeApproved($q){
+  return $q->where('status_approval', 'approved');
+}
 
 }
