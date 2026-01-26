@@ -22,6 +22,7 @@ protected $fillable = [
   'harga_produk',
   'gambar_produk',
 
+  'is_approved',
   'status_approval',
   'approved_at',
   'approved_by',
