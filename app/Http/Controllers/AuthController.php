@@ -3,10 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Mail\EmailOtpMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -16,6 +15,7 @@ class AuthController extends Controller
      * REGISTER (tanpa token)
      * =========================
      */
+
     public function register(Request $request)
     {
         $request->validate([
@@ -49,8 +49,7 @@ class AuthController extends Controller
         }
 
         // kirim OTP ke email
-        Mail::to($user->email)->send(new EmailOtpMail($otp));
-
+        $this->sendOtpEmailViaBrevo($user->email, $otp);
         return response()->json([
             'message' => 'Register berhasil, silakan cek email untuk kode verifikasi (OTP).',
             'user' => $user->only(['id', 'nama', 'email']),
@@ -62,6 +61,36 @@ class AuthController extends Controller
      * VERIFY EMAIL VIA OTP
      * =========================
      */
+   private function sendOtpEmailViaBrevo(string $toEmail, string $otp): void
+    {
+        $res = Http::withHeaders([
+            'api-key' => env('BREVO_API_KEY'),
+            'accept' => 'application/json',
+            'content-type' => 'application/json',
+        ])->post('https://api.brevo.com/v3/smtp/email', [
+            'sender' => [
+                'name'  => env('BREVO_SENDER_NAME'),
+                'email' => env('BREVO_SENDER_EMAIL'),
+            ],
+            'to' => [
+                ['email' => $toEmail],
+            ],
+            'subject' => 'Kode OTP Verifikasi Email',
+            'textContent' => "Kode OTP kamu: {$otp}\n\nBerlaku 10 menit.\n\nPalaDewi App",
+        ]);
+
+        if (!$res->successful()) {
+            logger()->error('Brevo error', [
+                'status' => $res->status(),
+                'body'   => $res->body(),
+            ]);
+            abort(500, 'Brevo gagal: ' . $res->body());
+        }
+    }
+
+
+
+
     public function verifyEmailOtp(Request $request)
     {
         $request->validate([
@@ -132,7 +161,7 @@ class AuthController extends Controller
             'email_otp_expires_at' => now()->addMinutes(10),
         ])->save();
 
-        Mail::to($user->email)->send(new EmailOtpMail($otp));
+        $this->sendOtpEmailViaBrevo($user->email, $otp);
 
         return response()->json([
             'message' => 'OTP baru berhasil dikirim ke email',

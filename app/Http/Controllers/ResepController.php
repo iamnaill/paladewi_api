@@ -8,34 +8,60 @@ use Illuminate\Http\Request;
 class ResepController extends Controller
 {
     public function index(Request $request)
-    {
-        $query = Resep::query();
+{
+    $query = Resep::query();
 
-        // SEARCH keyword (nama/deskripsi/bahan/steps/kategori/link_ytb)
-        if ($request->filled('search')) {
-            $s = trim((string) $request->search);
+    if ($request->filled('search')) {
+        $s = trim((string) $request->search);
 
-            $query->where(function ($q) use ($s) {
-                $q->where('nama_resep', 'like', "%{$s}%")
-                  ->orWhere('deskripsi', 'like', "%{$s}%")
-                  ->orWhere('alat_dan_bahan', 'like', "%{$s}%")
-                  ->orWhere('steps', 'like', "%{$s}%")
-                  ->orWhere('kategori_produk', 'like', "%{$s}%")
-                  ->orWhere('kategori_pala', 'like', "%{$s}%")
-                  ->orWhere('link_ytb', 'like', "%{$s}%");
-            });
-        }
-
-        return response()->json([
-            'message' => 'List resep',
-            'data' => $query->latest()->get()
-        ], 200);
+        $query->where(function ($q) use ($s) {
+            $q->where('nama_resep', 'like', "%{$s}%")
+              ->orWhere('deskripsi', 'like', "%{$s}%")
+              ->orWhere('alat_dan_bahan', 'like', "%{$s}%")
+              ->orWhere('steps', 'like', "%{$s}%")
+              ->orWhere('kategori_produk', 'like', "%{$s}%")
+              ->orWhere('kategori_pala', 'like', "%{$s}%")
+              ->orWhere('link_ytb', 'like', "%{$s}%");
+        });
     }
 
-    public function show(Resep $resep)
-    {
-        return response()->json($resep, 200);
-    }
+    $data = $query->latest()->get();
+
+    // 🔥 INI BAGIAN PENTING
+    $data->transform(function ($item) {
+        $item->foto_produk = $item->foto_produk
+            ? asset('storage/' . $item->foto_produk)
+            : null;
+
+        $item->foto_rekomendasi_kemasan = collect($item->foto_rekomendasi_kemasan)
+            ->map(fn ($p) => asset('storage/' . $p));
+
+        return $item;
+    });
+
+    return response()->json([
+        'message' => 'List resep',
+        'data' => $data
+    ], 200);
+}
+
+
+public function show(Resep $resep)
+{
+    $resep->foto_produk = $resep->foto_produk
+        ? asset('storage/' . $resep->foto_produk)
+        : null;
+
+    $resep->foto_rekomendasi_kemasan = collect($resep->foto_rekomendasi_kemasan)
+        ->map(fn ($p) => asset('storage/' . $p));
+
+    return response()->json([
+        'message' => 'Detail resep',
+        'data' => $resep
+    ], 200);
+}
+
+
 
     public function store(Request $request)
     {
@@ -50,9 +76,8 @@ class ResepController extends Controller
             // sesuai kolom DB
             'link_ytb'        => 'nullable|url|max:255',
 
-            'foto_produk'     => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'foto_produk'     => 'nullable|file|mimes:jpg,jpeg,png,webp|max:2048',
 
-            'foto_rekomendasi_kemasan'   => 'nullable|array|max:3',
             'foto_rekomendasi_kemasan.*' => 'image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
