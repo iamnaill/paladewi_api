@@ -88,9 +88,6 @@ class AuthController extends Controller
         }
     }
 
-
-
-
     public function verifyEmailOtp(Request $request)
     {
         $request->validate([

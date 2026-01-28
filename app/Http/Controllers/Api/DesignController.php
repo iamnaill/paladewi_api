@@ -5,105 +5,92 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Design;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class DesignController extends Controller
 {
-    // 🔹 LIST + SEARCH
+    // LIST DESIGN + SEARCH
     public function index(Request $request)
     {
-        $q = trim((string) $request->query('q', ''));
-        $limit = max(1, min((int) $request->query('limit', 20), 50));
+        $q = $request->query('q'); // ambil query param 'q' dari URL
 
-        $query = Design::query()
-            ->select(['id', 'title', 'template_link', 'image_path', 'category']);
-
-        // 🔍 searching (optional)
-        if (strlen($q) >= 2) {
-            $query->where('title', 'like', '%' . $q . '%');
-        }
+        $designs = Design::query()
+            ->when($q, function ($query) use ($q) {
+                $query->where(function ($sub) use ($q) {
+                    $sub->where('title', 'like', "%{$q}%")
+                        ->orWhere('category', 'like', "%{$q}%");
+                });
+            })
+            ->latest()
+            ->get();
 
         return response()->json([
-            'message' => 'List designs',
-            'data' => $query->latest()->limit($limit)->get()
-        ]);
+            'success' => true,
+            'message' => 'List design',
+            'data' => $designs
+        ], 200);
     }
 
-    // 🔹 DETAIL
+    // DETAIL DESIGN
     public function show($id)
     {
+        $design = Design::findOrFail($id);
+
         return response()->json([
+            'success' => true,
             'message' => 'Detail design',
-            'data' => Design::findOrFail($id)
-        ]);
+            'data' => $design
+        ], 200);
     }
 
-    // 🔹 CREATE
+    // TAMBAH DESIGN
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'category' => 'required|string|max:100',
-            'template_link' => 'nullable|url',
-            'image' => 'required|image|mimes:jpg,jpeg,png|max:2048',
+        $data = $request->validate([
+            'title'         => 'required|string|max:255',
+            'category'      => 'required|string|max:100',
+            'template_link' => 'nullable|string',
+            'image_path'    => 'nullable|string',
         ]);
 
-        $imagePath = $request->file('image')->store('designs', 'public');
-
-        $design = Design::create([
-            'title' => $validated['title'],
-            'category' => $validated['category'],
-            'template_link' => $validated['template_link'] ?? null,
-            'image_path' => $imagePath,
-        ]);
+        $design = Design::create($data);
 
         return response()->json([
-            'message' => 'Design berhasil ditambahkan',
+            'success' => true,
+            'message' => 'Design berhasil dibuat',
             'data' => $design
         ], 201);
     }
 
-    // 🔹 UPDATE
+    // UPDATE DESIGN
     public function update(Request $request, $id)
     {
         $design = Design::findOrFail($id);
 
-        $validated = $request->validate([
-            'title' => 'sometimes|required|string|max:255',
-            'category' => 'sometimes|required|string|max:100',
-            'template_link' => 'nullable|url',
-            'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+        $data = $request->validate([
+            'title'         => 'sometimes|required|string|max:255',
+            'category'      => 'sometimes|required|string|max:100',
+            'template_link' => 'nullable|string',
+            'image_path'    => 'nullable|string',
         ]);
 
-        if ($request->hasFile('image')) {
-            if ($design->image_path) {
-                Storage::disk('public')->delete($design->image_path);
-            }
-
-            $design->image_path = $request->file('image')->store('designs', 'public');
-        }
-
-        $design->update($validated);
+        $design->update($data);
 
         return response()->json([
+            'success' => true,
             'message' => 'Design berhasil diupdate',
             'data' => $design
-        ]);
+        ], 200);
     }
 
-    // 🔹 DELETE
+    // DELETE DESIGN
     public function destroy($id)
     {
         $design = Design::findOrFail($id);
-
-        if ($design->image_path) {
-            Storage::disk('public')->delete($design->image_path);
-        }
-
         $design->delete();
 
         return response()->json([
+            'success' => true,
             'message' => 'Design berhasil dihapus'
-        ]);
+        ], 200);
     }
 }
